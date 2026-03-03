@@ -557,11 +557,18 @@
 <!-- API Key Modal -->
 <div class="modal-overlay" id="apiModal">
   <div class="modal">
-    <h2>Connect your API key</h2>
-    <p>Your Anthropic API key is stored locally in your browser only — never sent anywhere except the Anthropic API directly.</p>
+    <h2>Connect your keys</h2>
+    <p>Both keys are saved in your browser on this device. You only need to do this once.</p>
+    
+    <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Anthropic API Key</label>
     <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
-    <p class="modal-note">⚠ Keep this tab open. The key is not persisted between sessions.</p>
-    <button class="modal-btn" onclick="saveApiKey()">Start →</button>
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:16px;">Get this from console.anthropic.com → API Keys</p>
+
+    <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Monday.com API Token</label>
+    <input type="password" id="mondayKeyInput" placeholder="eyJhbGci..." />
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:20px;">Get this from Monday.com → Avatar (bottom left) → Administration → API</p>
+
+    <button class="modal-btn" onclick="saveApiKey()">Save & Start →</button>
   </div>
 </div>
 
@@ -623,10 +630,25 @@
 
 <script>
 let apiKey = '';
+let mondayKey = '';
 let mode = 'braindump';
 let isRecording = false;
 let recognition = null;
 let conversationHistory = [];
+
+// Load saved keys on startup
+window.addEventListener('load', () => {
+  const savedApiKey = localStorage.getItem('gt_anthropic_key');
+  const savedMondayKey = localStorage.getItem('gt_monday_key');
+  if (savedApiKey && savedMondayKey) {
+    apiKey = savedApiKey;
+    mondayKey = savedMondayKey;
+    document.getElementById('apiModal').style.display = 'none';
+  } else {
+    if (savedApiKey) document.getElementById('apiKeyInput').value = savedApiKey;
+    if (savedMondayKey) document.getElementById('mondayKeyInput').value = savedMondayKey;
+  }
+});
 
 const SYSTEM_PROMPT = `You are the Geeky Tech Ops Bot — an AI Chief of Staff built specifically for Ben Hawkshaw-Burn, CEO of Geeky Tech Global Limited.
 
@@ -672,11 +694,19 @@ You have access to Monday.com via MCP tools. Use them to read and write data. Al
 
 function saveApiKey() {
   const key = document.getElementById('apiKeyInput').value.trim();
+  const mKey = document.getElementById('mondayKeyInput').value.trim();
   if (!key.startsWith('sk-ant-')) {
     alert('Please enter a valid Anthropic API key starting with sk-ant-');
     return;
   }
+  if (!mKey) {
+    alert('Please enter your Monday.com API token');
+    return;
+  }
   apiKey = key;
+  mondayKey = mKey;
+  localStorage.setItem('gt_anthropic_key', apiKey);
+  localStorage.setItem('gt_monday_key', mondayKey);
   document.getElementById('apiModal').style.display = 'none';
 }
 
@@ -871,7 +901,8 @@ async function sendMessage() {
           {
             type: 'url',
             url: 'https://mcp.monday.com/mcp',
-            name: 'monday'
+            name: 'monday',
+            authorization_token: mondayKey
           }
         ]
       })
